@@ -1,4 +1,12 @@
 (function () {
+    var locationfound = false;
+    var currentLat = 47.6739881;
+    var currentLon = -122.121512;
+
+    navigator.geolocation.getCurrentPosition(function (position) {
+        locationfound = true;
+        console.log(position);
+    });
     var x = 0;
 
     var priceBtn = $('#priceForm');
@@ -8,39 +16,101 @@
     function test(e) {
         e.preventDefault();
         console.log(e);
+
+        /*
+        $.get('https://api.uber.com/v1/products', {
+            server_token: 'Y-AVmleGPtdlppZLpGTlDaA0fUtrKp-zEMvjRcsT',
+            latitude: currentLat,
+            longitude: currentLon 
+        }).done(function (data) {
+            console.log(data);
+        });
+        */
+
         console.log(e.target[0].value);
-        console.log(priceToUberDist(e.target[0].value));
-        var slat, slon;
-        slat = 47.6739881;
-        slon = -122.121512;
-        //getPrice({ lat: slat, lon: slon }, calc(slat, slon, 150, 5));
+        runThrough(e.target[0].value);
+
     }
 
-    function getPrice(start, end) {
+    function getPrice(start, end, possibleDestinations, index, price, cb) {
         console.log(end.lat);
+        var x = "Test";
         $.get('https://api.uber.com/v1/estimates/price', {
-            server_token: 'o1iNjGxcHmGue5VjdYpWmzD4mw5jfmVQaTfBSIgf',
+            server_token: 'Y-AVmleGPtdlppZLpGTlDaA0fUtrKp-zEMvjRcsT',
             start_latitude: start.lat,
             start_longitude: start.lon,
             end_latitude: end.lat,
             end_longitude: end.lon
         }).done(function (data) {
             console.log(data);
-
+            var workingLocation = {};
+            var success = false;
+            if (data.prices[0].high_estimate <= price) {
+                success = true;
+                workingLocation = { lat: end.lat, lon: end.lon };
+            }
+            cb(workingLocation, success, start, possibleDestinations, index + 1, price);
         });
+
+    }
+
+    function runThrough(price) {
+        var distance = priceToUberDist(price);
+        var possibleDestinations = getDestinations(currentLat, currentLon, distance, 40);
+        console.log(distance);
+        getPrice({lat: currentLat, lon: currentLon}, possibleDestinations[0], possibleDestinations, 0, price, getPriceCb);
+
+    }
+
+    function getPriceCb(workingLocation, success, start, possibleDestinations, index, price) {
+        if (success) {
+            launchUber(workingLocation);
+
+        }
+        else {
+            getPrice(start, possibleDestinations[index], possibleDestinations, index, price, getPriceCb);
+        }
+
+    }
+
+    function launchUber(location) {
+        console.log(location);
+        console.log('IT WORKS');
+        var clientID = 'QhylZEag9VXCJV03SaVNv49eCa8vF237';
+        var productParam = '&product_id=6450cc0f-4d39-4473-8632-1e2c2049fefe';
+        var pickupParam = '&pickup_latitude=' + currentLat + '&pickup_longitude=' + currentLon + '&pickup_nickname=Your%20Location';
+        var dropoffParam = '&dropoff_latitude=' + location.lat + '&dropoff_longitude=' + location.lon + '&dropoff_nickname=Surprise%20Location&dropoff_address=Hidden%20St';
+        var uberURL = 'https://m.uber.com/sign-up?client_id=' + clientID + productParam + pickupParam + dropoffParam;
+        console.log(uberURL);
+        window.location = uberURL;
 
     }
 
     function priceToUberDist(price) {
         var BASE = 1.35;
-        var BSFEE = 1;
+        var BSFEE = 1; //uw0tm8
         var MINFARE = 4;
         var MINMULT = .24;
         var MILEMULT = 1.35;
 
-        var actualprice = price > 4 ? price : 4;
+        var actualprice = price > MINFARE ? price : MINFARE; //make sure price is at least minimum
 
         return (actualprice - BASE - BSFEE) / (MILEMULT + MINMULT);
+    }
+
+    function getDestinations(lat, lon, dist, iter) {
+        var possibleDesinations = [];
+        console.log("dist: " + dist);
+
+        for (var i = 0; i < iter; i++) {
+            var minDist = dist / (i + 1);
+            var randomizeDist = Math.random() * (dist - minDist) + minDist;
+            var randomizeDirection = Math.random() * 360;
+            possibleDesinations.push(calc(lat, lon, randomizeDirection, randomizeDist));
+        }
+        console.log(possibleDesinations);
+        return possibleDesinations;
+
     }
 
 
