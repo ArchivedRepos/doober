@@ -38,8 +38,9 @@
         var MINMULT = .24;
         var MILEMULT = 1.35;
 
-        var distance = (price - BASE - BSFEE) / (MILEMULT + MINMULT);
-        return price > 4 ? distance : 4;
+        var actualprice = price > 4 ? price : 4;
+
+        return (actualprice - BASE - BSFEE) / (MILEMULT + MINMULT);
     }
 
 
