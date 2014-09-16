@@ -11,22 +11,35 @@
         console.log(e.target[0].value);
     }
 
-    function calc() {
 
-        var lat1 = 10;
-        var long1 = 10;
+    console.log(calc(47.6739881, -122.121512, 150, 15));
 
-        var brng = 210;
-        var d = 100;
-        var R = 6371;
+    function calc(lat, lon, brng, dist) {
 
-        var lat2 = Math.asin(Math.sin(lat1) * Math.cos(d / R) +
-                    Math.cos(lat1) * Math.sin(d / R) * Math.cos(brng));
+        var radius = 3959;
 
-        var long2 = long1 + Math.atan2(Math.sin(brng) * Math.sin(d / R) * Math.cos(lat1),
-                                 Math.cos(d / R) - Math.sin(lat1) * Math.sin(lat2));
+        var theta = toRadians(Number(brng));
+        var delta = Number(dist) / radius; // angular distance in radians
 
-        console.log(lat2 + " : " + long2);
+        var phi1 = toRadians(lat);
+        var lambda1 = toRadians(lon);
+
+        var phi2 = Math.asin( Math.sin(phi1)*Math.cos(delta) +
+                            Math.cos(phi1)*Math.sin(delta)*Math.cos(theta) );
+
+        var lambda2 = lambda1 + Math.atan2(Math.sin(theta)*Math.sin(delta)*Math.cos(phi1),
+                                 Math.cos(delta)-Math.sin(phi1)*Math.sin(phi2));
+        lambda2 = (lambda2+3*Math.PI) % (2*Math.PI) - Math.PI; // normalise to -180..+180º
+
+        return { lat: toDegrees(phi2), lon: toDegrees(lambda2) };
+    }
+
+    function toRadians(deg) {
+        return deg * Math.PI / 180;
+    }
+
+    function toDegrees(rad) {
+        return rad * 180 / Math.PI;
     }
 
 }());
